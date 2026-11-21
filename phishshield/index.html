@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PhishShield - Phishing URL Analyzer &amp; Password Lab</title>
+  <meta name="description" content="Educational cybersecurity toolkit: analyze suspicious links for phishing red flags, audit password strength and check breaches privately. Runs fully in your browser.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 4 7v8c0 7.5 5 13.5 12 15 7-1.500 12-7.500 12-15V7z' fill='%2322d3ee'/%3E%3Cpath d='m10.500 16 4 4 7-8' fill='none' stroke='%230b1117' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M16 2 4 7v8c0 7.500 5 13.500 12 15 7-1.500 12-7.500 12-15V7z" fill="currentColor"/>
+          <path d="m10.500 16 4 4 7-8" fill="none" stroke="var(--bg)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div>
+          <h1>PhishShield</h1>
+          <p class="tagline">Spot the phish. Test the password.</p>
+        </div>
+      </div>
+      <span class="pill" title="Nothing you type is uploaded. The URL is never opened.">
+        <span class="dot" aria-hidden="true"></span> Runs 100% in your browser
+      </span>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+    <div class="tabs" role="tablist" aria-label="Tools">
+      <button class="tab" role="tab" id="tab-url" aria-controls="panel-url" aria-selected="true">URL Analyzer</button>
+      <button class="tab" role="tab" id="tab-pw" aria-controls="panel-pw" aria-selected="false" tabindex="-1">Password Lab</button>
+      <button class="tab" role="tab" id="tab-about" aria-controls="panel-about" aria-selected="false" tabindex="-1">How it works</button>
+    </div>
+
+    <!-- ============================ URL ANALYZER ============================ -->
+    <section class="panel" id="panel-url" role="tabpanel" aria-labelledby="tab-url">
+      <div class="card">
+        <h2 class="label">Suspicious link?</h2>
+        <form id="url-form" class="row" autocomplete="off" novalidate>
+          <label class="sr" for="url-input">URL to analyze</label>
+          <input id="url-input" class="input mono" type="text" inputmode="url" spellcheck="false"
+                 placeholder="Paste a link, e.g. http://paypa1-secure-login.xyz/verify" maxlength="2048">
+          <button class="btn primary" type="submit">Analyze</button>
+        </form>
+        <p class="hint">The link is only <em>read as text</em>. It is never opened, so pasting a dangerous link here is safe.</p>
+
+        <div class="samples" aria-label="Sample links">
+          <span class="label small">Try a sample:</span>
+          <button type="button" class="chip" data-sample="https://accounts.google.com/signin">Genuine</button>
+          <button type="button" class="chip" data-sample="http://paypa1-secure-login.verify-account.xyz/signin?session=8f3a">Look-alike PayPal</button>
+          <button type="button" class="chip" data-sample="https://paypal.com.account-update.tk/login">Brand in subdomain</button>
+          <button type="button" class="chip" data-sample="http://192.168.45.7:8080/bank/login">IP address</button>
+          <button type="button" class="chip" data-sample="http://secure-bank.com@evil-host.top/">Hidden @</button>
+          <button type="button" class="chip" data-sample="hxxps://sbi-kyc-update[.]in/otp">Defanged SBI KYC</button>
+        </div>
+        <p id="url-error" class="error" role="alert" hidden></p>
+      </div>
+
+      <div id="url-result" class="card result" aria-live="polite" hidden>
+        <div class="verdict" id="url-verdict">
+          <div class="gauge" aria-hidden="true">
+            <svg viewBox="0 0 120 70">
+              <path class="gauge-track" d="M10 60 A50 50 0 0 1 110 60" pathLength="100"/>
+              <path class="gauge-fill" id="gauge-fill" d="M10 60 A50 50 0 0 1 110 60" pathLength="100"/>
+            </svg>
+            <div class="gauge-num mono" id="url-score">0</div>
+          </div>
+          <div class="verdict-text">
+            <p class="label small">Risk score (0-100)</p>
+            <h3 id="url-verdict-title"></h3>
+            <p id="url-advice" class="muted"></p>
+          </div>
+        </div>
+
+        <dl class="meta mono">
+          <div><dt>Host</dt><dd id="meta-host"></dd></div>
+          <div><dt>Registered domain</dt><dd id="meta-domain"></dd></div>
+          <div><dt>Safe to share (defanged)</dt><dd id="meta-defanged"></dd></div>
+        </dl>
+
+        <h3 class="label">What we found</h3>
+        <ul id="url-findings" class="findings"></ul>
+
+        <div class="row end">
+          <button type="button" class="btn" id="copy-report">Copy report</button>
+          <span id="copy-status" class="muted small" role="status"></span>
+        </div>
+      </div>
+
+      <div id="history-card" class="card" hidden>
+        <div class="row between">
+          <h2 class="label">Recent scans (stored only in this browser)</h2>
+          <button type="button" class="btn ghost small" id="clear-history">Clear</button>
+        </div>
+        <ul id="history" class="history"></ul>
+      </div>
+    </section>
+
+    <!-- ============================ PASSWORD LAB ============================ -->
+    <section class="panel" id="panel-pw" role="tabpanel" aria-labelledby="tab-pw" hidden>
+      <div class="card">
+        <h2 class="label">How strong is your password?</h2>
+        <div class="row">
+          <label class="sr" for="pw-input">Password to test</label>
+          <input id="pw-input" class="input mono" type="password" autocomplete="off" spellcheck="false"
+                 placeholder="Type a password to test (use a similar one, not your real one)" maxlength="128">
+          <button type="button" class="btn" id="pw-toggle" aria-pressed="false">Show</button>
+        </div>
+        <p class="hint">Analysis happens on your device. Nothing is saved or sent.</p>
+
+        <div id="pw-result" hidden>
+          <div class="meter" id="pw-meter" data-score="0" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+          <p class="meter-label"><strong id="pw-label" class="mono"></strong> <span id="pw-summary" class="muted"></span></p>
+
+          <div class="stats mono">
+            <div><span class="stat-n" id="pw-length">0</span><span class="stat-l">characters</span></div>
+            <div><span class="stat-n" id="pw-entropy">0</span><span class="stat-l">bits of entropy</span></div>
+            <div><span class="stat-n" id="pw-pool">0</span><span class="stat-l">symbol pool</span></div>
+          </div>
+
+          <ul class="checks" id="pw-checks"></ul>
+
+          <h3 class="label">Time to crack (average)</h3>
+          <table class="crack">
+            <tbody id="pw-crack"></tbody>
+          </table>
+
+          <h3 class="label">Weak spots</h3>
+          <ul id="pw-weak" class="findings"></ul>
+
+          <h3 class="label">How to improve</h3>
+          <ul id="pw-tips" class="tips"></ul>
+
+          <div class="breach">
+            <button type="button" class="btn" id="pw-breach">Check if this password was leaked</button>
+            <p id="pw-breach-result" class="breach-result" role="status"></p>
+            <p class="hint">Uses the Have I Been Pwned range API with <strong>k-anonymity</strong>: only the first 5 characters of the password's SHA-1 hash are sent, never the password. Needs internet.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="label">Generate a strong password</h2>
+        <div class="gen-out row">
+          <output id="gen-out" class="input mono out" for="gen-length" aria-live="polite">-</output>
+          <button type="button" class="btn" id="gen-copy">Copy</button>
+          <button type="button" class="btn primary" id="gen-new">Generate</button>
+        </div>
+        <div class="gen-opts">
+          <label>Length <strong id="gen-length-val" class="mono">16</strong>
+            <input id="gen-length" type="range" min="8" max="64" value="16">
+          </label>
+          <label class="check"><input type="checkbox" id="gen-lower" checked> a-z</label>
+          <label class="check"><input type="checkbox" id="gen-upper" checked> A-Z</label>
+          <label class="check"><input type="checkbox" id="gen-digits" checked> 0-9</label>
+          <label class="check"><input type="checkbox" id="gen-symbols" checked> !@#</label>
+        </div>
+        <p class="hint">Made with your browser's cryptographically secure random generator (<code>crypto.getRandomValues</code>).</p>
+      </div>
+    </section>
+
+    <!-- ============================ ABOUT ============================ -->
+    <section class="panel" id="panel-about" role="tabpanel" aria-labelledby="tab-about" hidden>
+      <div class="card prose">
+        <h2 class="label">What is phishing?</h2>
+        <p>Phishing is when an attacker pretends to be a trusted brand (a bank, UPI app, college portal, Google...) to trick you into typing a password, OTP or card number on a fake page. It is one of the most common ways accounts get hacked, and it works on people, not on computers.</p>
+
+        <h2 class="label">How the URL analyzer thinks</h2>
+        <p>It runs a set of rule-based checks on the text of the link and adds up risk points. No machine-learning black box, so every point can be explained:</p>
+        <ul>
+          <li><strong>Structure:</strong> IP address instead of a domain, hidden <code>@</code>, unusual port, too many subdomains or hyphens, very long URLs.</li>
+          <li><strong>Look-alikes:</strong> <code>paypa1.com</code> (digit for letter), <code>rnicrosoft.com</code> (rn for m), typos found with Levenshtein edit distance, and punycode homograph domains.</li>
+          <li><strong>Brand tricks:</strong> a brand name placed in a subdomain or path of someone else's domain, compared against a list of genuine domains.</li>
+          <li><strong>Context:</strong> risky free TLDs (<code>.tk</code>, <code>.xyz</code>...), URL shorteners, redirect parameters, and pressure words such as <em>verify</em>, <em>kyc</em>, <em>otp</em>.</li>
+        </ul>
+
+        <h2 class="label">How the password lab thinks</h2>
+        <p>Strength is estimated as <em>entropy</em> = length x log<sub>2</sub>(character pool), with penalties for sequences, repeats, keyboard walks and years, and a cap when the password is built on a common word. Crack time assumes an attacker who guesses on average half the search space at three different speeds (online, bcrypt, GPU).</p>
+
+        <h2 class="label">Privacy</h2>
+        <ul>
+          <li>No server, no database, no analytics. All code runs in your browser.</li>
+          <li>URLs are only parsed as text and never fetched or opened.</li>
+          <li>The optional breach check sends only a 5-character hash prefix (k-anonymity).</li>
+          <li>Scan history is saved in your own browser's <code>localStorage</code> and can be cleared.</li>
+        </ul>
+
+        <h2 class="label">Limitations (be honest!)</h2>
+        <ul>
+          <li>Heuristics can be wrong. A <em>low</em> score does not prove a link is safe, and a <em>high</em> score does not prove it is malicious.</li>
+          <li>It cannot see the live page, domain age, certificates or reputation feeds. Use Google Safe Browsing or VirusTotal for that.</li>
+          <li>Password entropy is an estimate: uncommon words or names are not in the built-in dictionary, so such passwords can look stronger than they are.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>PhishShield is an educational project. Never enter real passwords into tools you do not trust, including this one.</p>
+  </footer>
+
+  <script src="js/urlAnalyzer.js"></script>
+  <script src="js/passwordAuditor.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

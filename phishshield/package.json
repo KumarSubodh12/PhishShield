@@ -1,0 +1,15 @@
+{
+  "name": "phishshield",
+  "version": "1.0.0",
+  "description": "Educational cybersecurity toolkit: phishing URL analyzer, password strength lab and private breach check. Pure HTML/CSS/JS, no backend.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test",
+    "serve": "npx --yes http-server . -p 8080 -c-1 -o"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["cybersecurity", "phishing", "password", "education", "college-project"]
+}
