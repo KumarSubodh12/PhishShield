@@ -16,7 +16,7 @@ Educational cybersecurity project built with plain HTML, CSS and JavaScript. No 
 
 Extras: scan history (kept in your browser's `localStorage`), copy-as-report, light/dark theme that follows your system, keyboard-accessible tabs, mobile friendly.
 
-![Password lab](docs/screenshot-password.png)
+
 
 ## Project structure
 
