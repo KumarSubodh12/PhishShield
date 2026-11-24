@@ -70,15 +70,21 @@
             <div class="gauge-num mono" id="url-score">0</div>
           </div>
           <div class="verdict-text">
-            <p class="label small">Risk score (0-100)</p>
+            <p class="label small">Combined risk score (0-100)</p>
             <h3 id="url-verdict-title"></h3>
             <p id="url-advice" class="muted"></p>
+            <div id="url-ml-summary" class="ml-summary" hidden>
+              <strong id="url-ml-score" class="mono"></strong>
+              <span>ML phishing likelihood</span>
+              <p id="url-ml-note" class="muted small"></p>
+            </div>
           </div>
         </div>
 
         <dl class="meta mono">
           <div><dt>Host</dt><dd id="meta-host"></dd></div>
           <div><dt>Registered domain</dt><dd id="meta-domain"></dd></div>
+          <div><dt>Rule checks</dt><dd id="meta-rule-score"></dd></div>
           <div><dt>Safe to share (defanged)</dt><dd id="meta-defanged"></dd></div>
         </dl>
 
@@ -170,7 +176,7 @@
         <p>Phishing is when an attacker pretends to be a trusted brand (a bank, UPI app, college portal, Google...) to trick you into typing a password, OTP or card number on a fake page. It is one of the most common ways accounts get hacked, and it works on people, not on computers.</p>
 
         <h2 class="label">How the URL analyzer thinks</h2>
-        <p>It runs a set of rule-based checks on the text of the link and adds up risk points. No machine-learning black box, so every point can be explained:</p>
+        <p>It combines transparent rule checks with a trained logistic-regression model. Rule findings remain individually explained; the model estimates phishing likelihood from 22 URL-only structure and text features:</p>
         <ul>
           <li><strong>Structure:</strong> IP address instead of a domain, hidden <code>@</code>, unusual port, too many subdomains or hyphens, very long URLs.</li>
           <li><strong>Look-alikes:</strong> <code>paypa1.com</code> (digit for letter), <code>rnicrosoft.com</code> (rn for m), typos found with Levenshtein edit distance, and punycode homograph domains.</li>
@@ -191,7 +197,7 @@
 
         <h2 class="label">Limitations (be honest!)</h2>
         <ul>
-          <li>Heuristics can be wrong. A <em>low</em> score does not prove a link is safe, and a <em>high</em> score does not prove it is malicious.</li>
+          <li>Rules and the ML model can both be wrong. The model was trained on UCI PhiUSIIL data using URL-only features; new campaigns and data drift can change accuracy. A <em>low</em> score does not prove a link is safe, and a <em>high</em> score does not prove it is malicious.</li>
           <li>It cannot see the live page, domain age, certificates or reputation feeds. Use Google Safe Browsing or VirusTotal for that.</li>
           <li>Password entropy is an estimate: uncommon words or names are not in the built-in dictionary, so such passwords can look stronger than they are.</li>
         </ul>
@@ -204,6 +210,8 @@
   </footer>
 
   <script src="js/urlAnalyzer.js"></script>
+  <script src="js/urlMl.js"></script>
+  <script src="js/urlModel.generated.js"></script>
   <script src="js/passwordAuditor.js"></script>
   <script src="js/app.js"></script>
 </body>

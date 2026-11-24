@@ -1,7 +1,7 @@
 # PhishShield - https://phishshield-3-gtig.onrender.com
 
 **A phishing URL analyzer and password security lab that runs entirely in your browser.**
-Educational cybersecurity project built with plain HTML, CSS and JavaScript. No backend, no database, no frameworks.
+The URL analyzer combines explainable phishing heuristics with a trained logistic-regression classifier. URL scoring runs locally; there is no analysis backend or database.
 
 ![URL analyzer](docs/screenshot-url.png)
 
@@ -9,7 +9,7 @@ Educational cybersecurity project built with plain HTML, CSS and JavaScript. No 
 
 | Tool | What it does |
 |------|--------------|
-| **URL Analyzer** | Paste a link and get a 0-100 risk score with a plain-English explanation for every red flag (look-alike domains, IP hosts, hidden `@`, punycode, risky TLDs, URL shorteners, brand impersonation, redirect tricks, pressure words). Understands defanged links like `hxxps://evil[.]com`. The link is **never opened**. |
+| **URL Analyzer** | Paste a link and get a combined 0-100 score, the separate ML phishing likelihood, and plain-English rule findings (look-alike domains, IP hosts, hidden `@`, punycode, risky TLDs, URL shorteners, brand impersonation, redirect tricks, pressure words). Understands defanged links like `hxxps://evil[.]com`. The link is **never opened or sent to a service**. |
 | **Password Lab** | Live strength meter, entropy in bits, crack-time estimates for 3 attack models, weak-spot detection (common passwords, sequences, keyboard walks, years, leetspeak), and tips to improve. |
 | **Breach check** | Checks the password against the Have I Been Pwned database using **k-anonymity**: only the first 5 characters of the SHA-1 hash leave your device. |
 | **Generator** | Strong random passwords from `crypto.getRandomValues` with unbiased selection. |
@@ -26,15 +26,18 @@ phishshield/
 ├── css/style.css           # theme (dark + light)
 ├── js/
 │   ├── urlAnalyzer.js      # phishing heuristics (pure logic, no DOM)
+│   ├── urlMl.js            # URL feature extraction and browser inference
+│   ├── urlModel.generated.js # trained model weights + evaluation metadata
 │   ├── passwordAuditor.js  # entropy, patterns, breach check, generator
 │   └── app.js              # connects the logic to the page
+├── scripts/train_url_model.py # reproducible UCI model training (Python stdlib)
 ├── test/                   # 39 unit tests (node:test, no dependencies)
 ├── docs/                   # screenshots
 ├── .github/workflows/deploy.yml   # test + deploy to GitHub Pages
 └── .vscode/                # Live Server + browser launch configs
 ```
 
-The two logic files are written so they work both in the browser and in Node, which is why they can be unit-tested without a browser.
+The analysis modules are written so they work both in the browser and in Node, which is why they can be unit-tested without a browser.
 
 ## Run it in VS Code
 
@@ -89,7 +92,21 @@ Put this link in your project report and on the first slide.
 
 ### URL analyzer
 
-A rule-based scoring engine. Every rule that fires adds points, the total is capped at 100:
+A hybrid scoring engine. The transparent rule score is capped at 100; a logistic-regression model trained on PhiUSIIL adds up to 35% influence when it raises the final score. Rule checks never lower the risk score. The UI shows the rule score and ML phishing likelihood separately. The model receives 22 lexical and structural URL features only; it does not fetch the URL or see page content.
+
+Training uses the [UCI PhiUSIIL Phishing URL dataset (ID 967)](https://archive.ics.uci.edu/dataset/967/phiusiil%2Bphishing%2Burl%2Bdataset), licensed CC BY 4.0. The training script downloads the source archive on demand and does not save or commit raw URLs. It uses hostname-hash-based 80/10/10 train, validation, and holdout splits to keep each host in one partition; generated model metadata includes validation and holdout metrics. Features are recomputed from the raw URL field so the model does not rely on page-content columns unavailable during scans. The model uses class-balanced training and prior-adjusts the displayed estimate; it is a research signal, not a calibrated threat-intelligence verdict.
+
+Current hostname-held-out results: validation F1 81.13%; holdout accuracy 86.98%, precision 99.27%, recall 69.72%, and F1 81.91% (17,871 holdout samples). Metrics use the class-balanced 0.45 decision threshold. This is one fixed benchmark split, not a guarantee of live performance; the generated model records the full summary.
+
+To retrain (Python 3, no third-party packages needed):
+
+```bash
+npm run train:model
+```
+
+The command regenerates `js/urlModel.generated.js`. Keep `scripts/train_url_model.py` and `js/urlMl.js` feature definitions in sync.
+
+Each rule that fires adds points, and the rule total is capped at 100:
 
 | Score | Verdict |
 |-------|---------|
@@ -129,7 +146,8 @@ Characters that belong to a sequence (`abcd`), a repeat (`aaaa`), a keyboard wal
 
 ## Limitations
 
-- Heuristics can be wrong in both directions. A low score does not prove a site is safe.
+- Rules and ML can be wrong in both directions. A low score does not prove a site is safe. The trained dataset is a research benchmark; performance can change on newer campaigns and domains.
+- The model uses URL-only features recomputed from a dataset that includes corresponding web pages. It cannot verify a page, domain reputation, registration age, or live status.
 - No live data: domain age, SSL certificate details and reputation feeds are out of scope. For those use Google Safe Browsing or VirusTotal.
 - Entropy is an estimate. Words that are not in the small built-in dictionary (for example a rare name) are not detected, so such passwords can look stronger than they really are.
 - The list of brands is small and hand-written.
@@ -166,11 +184,13 @@ Using characters from other alphabets that look identical to Latin letters, for 
 HTTPS only encrypts the connection. Anyone, including a phisher, can get a free certificate, so the padlock proves privacy, not honesty.
 
 **How would you improve accuracy?**
-Combine these rules with reputation feeds and a trained classifier, and check domain age and certificate data.
+Refresh and independently evaluate the classifier on temporally newer URLs, add carefully governed reputation feeds, and consider domain-age and certificate signals through a privacy-preserving backend.
 
 ## Tech
 
-HTML5, CSS3 (custom properties, grid, `color-mix`), vanilla JavaScript (ES2020), Web Crypto API, `node:test` for testing, GitHub Actions and GitHub Pages for CI/CD.
+HTML5, CSS3 (custom properties, grid, `color-mix`), vanilla JavaScript (ES2020), Python standard library for reproducible logistic-regression training, Web Crypto API, `node:test` for testing, GitHub Actions and GitHub Pages for CI/CD.
+
+Dataset citation: Prasad, A. & Chandra, S. (2024). *PhiUSIIL Phishing URL (Website)*. UCI Machine Learning Repository. DOI: [10.1016/j.cose.2023.103545](https://doi.org/10.1016/j.cose.2023.103545). CC BY 4.0.
 
 ## Licence
 

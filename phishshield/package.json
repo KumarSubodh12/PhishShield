@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "test": "node --test",
-    "serve": "npx --yes http-server . -p 8080 -c-1 -o"
+    "serve": "npx --yes http-server . -p 8080 -c-1 -o",
+    "train:model": "python scripts/train_url_model.py"
   },
   "engines": {
     "node": ">=18"

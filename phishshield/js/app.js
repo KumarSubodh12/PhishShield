@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  const { UrlAnalyzer, PasswordAuditor } = window.PhishShield;
+  const { UrlAnalyzer, UrlMl, UrlModel, PasswordAuditor } = window.PhishShield;
   const $ = (id) => document.getElementById(id);
 
   // ---------- small helpers ----------
@@ -114,7 +114,14 @@
     $('url-advice').textContent = ADVICE[r.level];
     $('meta-host').textContent = r.host || '(none)';
     $('meta-domain').textContent = r.registeredDomain || '(none)';
+    $('meta-rule-score').textContent = r.ruleScore + '/100';
     $('meta-defanged').textContent = r.defanged;
+    const mlSummary = $('url-ml-summary');
+    mlSummary.hidden = !r.ml;
+    if (r.ml) {
+      $('url-ml-score').textContent = r.ml.percent + '%';
+      $('url-ml-note').textContent = 'Prior-adjusted estimate from a research dataset. URL text and structure only; treat as a signal, not proof.';
+    }
     renderFindings($('url-findings'), r.findings, true);
     $('copy-status').textContent = '';
 
@@ -134,6 +141,15 @@
       errorBox.hidden = false;
       $('url-result').hidden = true;
       return;
+    }
+    r.ruleScore = r.score;
+    r.ml = UrlMl && UrlMl.score && UrlModel ? UrlMl.score(value, UrlModel) : null;
+    if (r.ml) {
+      // Rule checks never lower risk; the learned model contributes up to 35%.
+      r.score = UrlMl.combineRiskScores(r.ruleScore, r.ml.percent);
+      if (r.score >= 55) { r.level = 'high'; r.verdict = 'High risk - likely phishing'; }
+      else if (r.score >= 30) { r.level = 'medium'; r.verdict = 'Suspicious - be careful'; }
+      else { r.level = 'low'; r.verdict = 'Low risk - no strong red flags'; }
     }
     errorBox.hidden = true;
     renderUrlResult(r);
@@ -191,6 +207,8 @@
       'PhishShield report - ' + new Date().toLocaleString(),
       'URL (defanged): ' + r.defanged,
       'Risk: ' + r.score + '/100 - ' + r.verdict,
+      'Rule score: ' + r.ruleScore + '/100',
+      r.ml ? 'ML phishing likelihood: ' + r.ml.percent + '%' : 'ML model: unavailable',
       'Findings:'
     ].concat(r.findings.map((f) => '- [' + (SEVERITY_LABEL[f.severity] || f.severity).toUpperCase() + '] ' + f.title + ': ' + f.detail));
     const ok = await copyText(lines.join('\n'));

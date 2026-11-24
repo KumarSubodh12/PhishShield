@@ -1,7 +1,7 @@
 # PhishShield - https://phishshield-3-gtig.onrender.com
 
 **A phishing URL analyzer and password security lab that runs entirely in your browser.**
-Educational cybersecurity project built with plain HTML, CSS and JavaScript. No backend, no database, no frameworks.
+The URL analyzer combines explainable heuristics with a trained logistic-regression model. URL scoring runs locally; there is no analysis backend or database.
 
 
 
@@ -9,7 +9,7 @@ Educational cybersecurity project built with plain HTML, CSS and JavaScript. No 
 
 | Tool | What it does |
 |------|--------------|
-| **URL Analyzer** | Paste a link and get a 0-100 risk score with a plain-English explanation for every red flag (look-alike domains, IP hosts, hidden `@`, punycode, risky TLDs, URL shorteners, brand impersonation, redirect tricks, pressure words). Understands defanged links like `hxxps://evil[.]com`. The link is **never opened**. |
+| **URL Analyzer** | Paste a link and get a combined 0-100 score, a separate ML phishing likelihood, and plain-English rule findings. Understands defanged links like `hxxps://evil[.]com`. The link is **never opened or sent to a service**. |
 | **Password Lab** | Live strength meter, entropy in bits, crack-time estimates for 3 attack models, weak-spot detection (common passwords, sequences, keyboard walks, years, leetspeak), and tips to improve. |
 | **Breach check** | Checks the password against the Have I Been Pwned database using **k-anonymity**: only the first 5 characters of the SHA-1 hash leave your device. |
 | **Generator** | Strong random passwords from `crypto.getRandomValues` with unbiased selection. |
@@ -26,15 +26,18 @@ phishshield/
 ├── css/style.css           # theme (dark + light)
 ├── js/
 │   ├── urlAnalyzer.js      # phishing heuristics (pure logic, no DOM)
+│   ├── urlMl.js            # URL feature extraction and browser inference
+│   ├── urlModel.generated.js # trained model weights and evaluation metadata
 │   ├── passwordAuditor.js  # entropy, patterns, breach check, generator
 │   └── app.js              # connects the logic to the page
+├── scripts/train_url_model.py # reproducible model training from UCI data
 ├── test/                   # 39 unit tests (node:test, no dependencies)
 ├── docs/                   # screenshots
 ├── .github/workflows/deploy.yml   # test + deploy to GitHub Pages
 └── .vscode/                # Live Server + browser launch configs
 ```
 
-The two logic files are written so they work both in the browser and in Node, which is why they can be unit-tested without a browser.
+The analysis modules are written so they work both in the browser and in Node, which is why they can be unit-tested without a browser.
 
 ## Run it in VS Code
 
@@ -89,7 +92,11 @@ Put this link in your project report and on the first slide.
 
 ### URL analyzer
 
-A rule-based scoring engine. Every rule that fires adds points, the total is capped at 100:
+A hybrid scoring engine. The rule score is capped at 100; a logistic-regression model trained on PhiUSIIL contributes up to 35% when it raises the final risk. The model uses 22 URL-only structural and text features; it never fetches the scanned URL or sees page content. See the app's `phishshield/README.md` for the training workflow and dataset citation.
+
+To retrain with Python 3 (standard library only), run `npm run train:model` from `phishshield/`. The script downloads UCI PhiUSIIL (CC BY 4.0) on demand, creates hash-based 80/10/10 splits, reports validation and holdout metrics, and regenerates the browser model. Raw URLs are not committed.
+
+Every rule that fires adds points, and the rule total is capped at 100:
 
 | Score | Verdict |
 |-------|---------|

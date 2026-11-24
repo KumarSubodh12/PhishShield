@@ -146,6 +146,9 @@ h3.label { margin-top: 22px; }
 .verdict-text { flex: 1 1 240px; }
 .verdict-text h3 { margin: 0 0 4px; font: 700 1.35rem/1.25 var(--sans); color: var(--lvl); }
 .verdict-text p { margin: 0; }
+.ml-summary { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.ml-summary strong { color: var(--accent); font-size: 1.1rem; margin-right: 6px; }
+.ml-summary p { margin-top: 3px; }
 
 .meta { margin: 20px 0 0; display: grid; gap: 8px; font-size: .85rem; }
 .meta div { display: grid; grid-template-columns: 11.5em 1fr; gap: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
