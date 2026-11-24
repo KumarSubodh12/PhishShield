@@ -1,4 +1,6 @@
-# PhishShield - https://phishshield-3-gtig.onrender.com
+# PhishShield
+
+**Live deployment:** [https://phishshield-3-gtig.onrender.com](https://phishshield-3-gtig.onrender.com)
 
 **A phishing URL analyzer and password security lab that runs entirely in your browser.**
 The URL analyzer combines explainable phishing heuristics with a trained logistic-regression classifier. URL scoring runs locally; there is no analysis backend or database.
